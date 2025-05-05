@@ -1,0 +1,68 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from mp_api.client import MPRester
+
+# List of binary oxides
+oxides = ['SiO2', 'TiO2', 'Al2O3', 'MgO', 'ZnO', 'Fe2O3', 'CuO', 'SnO2', 'CeO2', 'ZrO2']
+api_key = "API_KEY"  # Replace with actual API key
+
+def get_oxide_data(formula):
+    """
+    Retrieves the band gap and density of a binary oxide from the Materials Project.
+
+    Args:
+        formula (str): The chemical formula of the oxide.
+
+    Returns:
+        dict: A dictionary containing the formula, band gap, and density,
+              or None if the data is not found.
+    """
+    with MPRester(api_key) as mpr:
+        try:
+            docs = mpr.materials.summary.search(formula=formula, fields=["formula_pretty", "band_gap", "density"])
+            if docs:
+                # Take the first result
+                print(f"Found {docs[0].formula_pretty} with band gap: {docs[0].band_gap} and density: {docs[0].density} for formula {formula}")
+                return {
+                    "Formula": docs[0].formula_pretty,
+                    "Band Gap (eV)": docs[0].band_gap,
+                    "Density (g/cm3)": docs[0].density,
+                }
+            else:
+                print(f"Data not found for {formula}")
+                return None
+        except Exception as e:
+            print(f"Error retrieving data for {formula}: {e}")
+            return None
+
+def main():
+    """
+    Retrieves and displays the band gaps and densities of a list of binary oxides.
+    """
+    data = []
+    for oxide in oxides:
+        oxide_data = get_oxide_data(oxide)
+        if oxide_data:
+            data.append(oxide_data)
+
+    if not data:
+        print("No data retrieved.")
+        return
+
+    df = pd.DataFrame(data)
+    print(df.to_string(index=False))
+
+    # Create a plot
+    plt.figure(figsize=(8, 6))
+    plt.scatter(df['Density (g/cm3)'], df['Band Gap (eV)'])
+    plt.title('Band Gap vs. Density for Binary Oxides')
+    plt.xlabel('Density (g/cm3)')
+    plt.ylabel('Band Gap (eV)')
+    for i, row in df.iterrows():
+        plt.text(row['Density (g/cm3)'], row['Band Gap (eV)'], row['Formula'], fontsize=8, ha='center', va='bottom')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+if __name__ == "__main__":
+    main()
