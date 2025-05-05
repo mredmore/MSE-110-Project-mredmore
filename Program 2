@@ -1,0 +1,91 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from mp_api.client import MPRester
+import random
+
+# List of alkaline earth metals
+materials = ['Be', 'Mg', 'Ca', 'Sr', 'Ba']
+api_key = "API_KEY"  # Replace with actual API key
+
+def get_material_data(formula):
+    """
+    Retrieves density and a placeholder for tensile strength.
+
+    Args:
+        formula (str): The chemical formula of the material.
+
+    Returns:
+        dict: A dictionary containing the formula, density, and tensile strength,
+              or None if the data is not found.
+    """
+    with MPRester(api_key) as mpr:
+        try:
+            #  "tensile_strength" is NOT a standard MP field.
+            docs = mpr.materials.summary.search(formula=formula, fields=["formula_pretty", "density"])
+            if docs:
+                density = docs[0].density
+                tensile_strength = random.uniform(50, 200)  # Placeholder
+                material_data = {
+                    "Formula": docs[0].formula_pretty,
+                    "Density (g/cm3)": density,
+                    "Tensile Strength (MPa)": tensile_strength,
+                }
+                print(f"Data retrieved for {formula}: {material_data}")  # Print the data
+                return material_data
+            else:
+                print(f"Data not found for {formula}")
+                return None
+        except Exception as e:
+            print(f"Error retrieving data for {formula}: {e}")
+            return None
+
+def plot_tensile_strength_vs_density(materials_data):
+    """
+    Plots tensile strength vs. density.
+
+    Args:
+        materials_data (list): A list of dictionaries, where each dictionary
+                               contains material data.
+    """
+    if not materials_data:
+        print("No data to plot.")
+        return
+
+    df = pd.DataFrame(materials_data)
+    print("DataFrame contents before plotting:")
+    print(df)
+    plt.figure(figsize=(6, 4))
+    plt.scatter(df['Density (g/cm3)'], df['Tensile Strength (MPa)'])
+    plt.title('Tensile Strength vs. Density (Alkaline Earth Metals)')
+    plt.xlabel('Density (g/cm3)')
+    plt.ylabel('Tensile Strength (MPa)')
+    for i, row in df.iterrows():
+        plt.text(row['Density (g/cm3)'], row['Tensile Strength (MPa)'], row['Formula'], fontsize=8, ha='center', va='bottom', clip_on=True)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+def main():
+    """
+    Retrieves material data and plots tensile strength vs. density.
+    """
+    materials_data = []
+    for material in materials:
+        material_data = get_material_data(material)
+        materials_data.append(material_data)
+
+    # Remove None entries
+    materials_data = [m for m in materials_data if m]
+
+    if not materials_data:
+        print("No data retrieved.")
+        return
+    print("Final materials_data:")
+    print(materials_data)
+
+    plot_tensile_strength_vs_density(materials_data)
+
+
+
+if __name__ == "__main__":
+    main()
